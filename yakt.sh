@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v17
+# YAKT v102
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -77,7 +77,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v17"
+log_info "Starting YAKT v102"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -116,21 +116,24 @@ log_info "Done."
 # The stat_interval reduces jitter (Credits to kdrag0n)
 # Credits to RedHat for dirty_ratio
 log_info "Applying RAM Tweaks"
+write_value "$MEMORY_PATH/page-cluster" 0
 write_value "$MEMORY_PATH/vfs_cache_pressure" 50
 write_value "$MEMORY_PATH/stat_interval" 30
 write_value "$MEMORY_PATH/compaction_proactiveness" 0
-write_value "$MEMORY_PATH/page-cluster" 0
-log_info "Detecting if your device has less or more than 8GB of RAM"
-if [ $TOTAL_RAM -lt 8000 ]; then
-    log_info "Detected 8GB or less"
-    log_info "Applying appropriate tweaks..."
-    write_value "$MEMORY_PATH/swappiness" 60
-else
-    log_info "Detected more than 8GB"
-    log_info "Applying appropriate tweaks..."
-    write_value "$MEMORY_PATH/swappiness" 0
-fi
 write_value "$MEMORY_PATH/dirty_ratio" 60
+write_value "$MEMORY_PATH/swappiness" 0
+write_value "$MEMORY_PATH/page_lock_unfairness" 4
+write_value "$MEMORY_PATH/watermark_boost_factor" 0
+#log_info "Detecting if your device has less or more than 8GB of RAM"
+#if [ $TOTAL_RAM -lt 8000 ]; then
+#    log_info "Detected 8GB or less"
+#    log_info "Applying appropriate tweaks..."
+#    write_value "$MEMORY_PATH/swappiness" 60
+#else
+#    log_info "Detected more than 8GB"
+#    log_info "Applying appropriate tweaks..."
+#    write_value "$MEMORY_PATH/swappiness" 0
+#fi
 log_info "Applied RAM Tweaks"
 
 # Mglru tweaks
@@ -240,14 +243,24 @@ log_info "Enabling power efficiency..."
 write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
 log_info "Done."
 
-# Disable TCP timestamps for reduced overhead
-log_info "Disabling TCP timestamps..."
-write_value "$IPV4_PATH/tcp_timestamps" 0
-log_info "Done."
+## Disable TCP timestamps for reduced overhead
+#log_info "Disabling TCP timestamps..."
+#write_value "$IPV4_PATH/tcp_timestamps" 0
+#log_info "Done."
+#
+## Enable TCP low latency mode
+#log_info "Enabling TCP low latency mode..."
+#write_value "$IPV4_PATH/tcp_low_latency" 1
+#log_info "Done."
 
-# Enable TCP low latency mode
+# Network tweaks
 log_info "Enabling TCP low latency mode..."
 write_value "$IPV4_PATH/tcp_low_latency" 1
+write_value "$IPV4_PATH/tcp_timestamps" 0
+write_value "$IPV4_PATH/tcp_tw_reuse" 1
+write_value "$IPV4_PATH/tcp_fastopen" 3
+write_value "$IPV4_PATH/tcp_slow_start_after_idle" 0
+write_value "$IPV4_PATH/tcp_no_metrics_save" 1
 log_info "Done."
 
 log_info "Tweaks applied successfully. Enjoy :)"
