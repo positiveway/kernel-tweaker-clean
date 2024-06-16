@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v102
+# YAKT v103
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -69,6 +69,7 @@ CPUSET_PATH="/dev/cpuset"
 MODULE_PATH="/sys/module"
 KERNEL_PATH="/proc/sys/kernel"
 IPV4_PATH="/proc/sys/net/ipv4"
+NET_CORE_PATH="/proc/sys/net/core"
 MEMORY_PATH="/proc/sys/vm"
 MGLRU_PATH="/sys/kernel/mm/lru_gen"
 SCHEDUTIL2_PATH="/sys/devices/system/cpu/cpufreq/schedutil"
@@ -77,7 +78,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v102"
+log_info "Starting YAKT v103"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -112,30 +113,6 @@ log_info "Enabling child_runs_first"
 write_value "$KERNEL_PATH/sched_child_runs_first" 1
 log_info "Done."
 
-# Apply RAM tweaks
-# The stat_interval reduces jitter (Credits to kdrag0n)
-# Credits to RedHat for dirty_ratio
-log_info "Applying RAM Tweaks"
-write_value "$MEMORY_PATH/page-cluster" 0
-write_value "$MEMORY_PATH/vfs_cache_pressure" 50
-write_value "$MEMORY_PATH/stat_interval" 30
-write_value "$MEMORY_PATH/compaction_proactiveness" 0
-write_value "$MEMORY_PATH/dirty_ratio" 60
-write_value "$MEMORY_PATH/swappiness" 0
-write_value "$MEMORY_PATH/page_lock_unfairness" 4
-write_value "$MEMORY_PATH/watermark_boost_factor" 0
-#log_info "Detecting if your device has less or more than 8GB of RAM"
-#if [ $TOTAL_RAM -lt 8000 ]; then
-#    log_info "Detected 8GB or less"
-#    log_info "Applying appropriate tweaks..."
-#    write_value "$MEMORY_PATH/swappiness" 60
-#else
-#    log_info "Detected more than 8GB"
-#    log_info "Applying appropriate tweaks..."
-#    write_value "$MEMORY_PATH/swappiness" 0
-#fi
-log_info "Applied RAM Tweaks"
-
 # Mglru tweaks
 # Credits to Arter97
 log_info "Checking if your kernel has MGLRU support..."
@@ -167,14 +144,6 @@ for queue in /sys/block/*/queue; do
     write_value "$queue/iostats" 0
     write_value "$queue/nr_requests" 64
 done
-log_info "Done."
-
-# Tweak scheduler to have less Latency
-# Credits to RedHat & tytydraco & KTweak
-log_info "Tweaking scheduler to reduce latency"
-write_value "$KERNEL_PATH/sched_migration_cost_ns" 50000
-write_value "$KERNEL_PATH/sched_min_granularity_ns" 1000000
-write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 1500000
 log_info "Done."
 
 # Disable Timer migration
@@ -243,24 +212,108 @@ log_info "Enabling power efficiency..."
 write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
 log_info "Done."
 
-## Disable TCP timestamps for reduced overhead
-#log_info "Disabling TCP timestamps..."
-#write_value "$IPV4_PATH/tcp_timestamps" 0
-#log_info "Done."
-#
-## Enable TCP low latency mode
-#log_info "Enabling TCP low latency mode..."
-#write_value "$IPV4_PATH/tcp_low_latency" 1
-#log_info "Done."
+# Apply RAM tweaks
+# The stat_interval reduces jitter (Credits to kdrag0n)
+# Credits to RedHat for dirty_ratio
+log_info "Applying RAM Tweaks"
 
+#write_value "$MEMORY_PATH/swappiness" 0
+#write_value "$MEMORY_PATH/page-cluster" 0
+#write_value "$MEMORY_PATH/vfs_cache_pressure" 50
+#write_value "$MEMORY_PATH/stat_interval" 30
+#write_value "$MEMORY_PATH/compaction_proactiveness" 0
+#write_value "$MEMORY_PATH/dirty_ratio" 60
+#write_value "$MEMORY_PATH/page_lock_unfairness" 4
+#write_value "$MEMORY_PATH/watermark_boost_factor" 0
+
+sysctl -w vm.swappiness=0
+sysctl -w vm.page-cluster=0
+sysctl -w vm.vfs_cache_pressure=50
+sysctl -w vm.stat_interval=30
+sysctl -w vm.compaction_proactiveness=0
+sysctl -w vm.dirty_ratio=60
+sysctl -w vm.page_lock_unfairness=4
+sysctl -w vm.watermark_boost_factor=0
+
+#log_info "Detecting if your device has less or more than 8GB of RAM"
+#if [ $TOTAL_RAM -lt 8000 ]; then
+#    log_info "Detected 8GB or less"
+#    log_info "Applying appropriate tweaks..."
+#    write_value "$MEMORY_PATH/swappiness" 60
+#else
+#    log_info "Detected more than 8GB"
+#    log_info "Applying appropriate tweaks..."
+#    write_value "$MEMORY_PATH/swappiness" 0
+#fi
+log_info "Done."
+
+log_info "Applying Network Tweaks"
 # Network tweaks
-log_info "Enabling TCP low latency mode..."
-write_value "$IPV4_PATH/tcp_low_latency" 1
-write_value "$IPV4_PATH/tcp_timestamps" 0
-write_value "$IPV4_PATH/tcp_tw_reuse" 1
-write_value "$IPV4_PATH/tcp_fastopen" 3
-write_value "$IPV4_PATH/tcp_slow_start_after_idle" 0
-write_value "$IPV4_PATH/tcp_no_metrics_save" 1
+# Old
+# write_value "$IPV4_PATH/tcp_tw_reuse" 1
+# write_value "$IPV4_PATH/tcp_fastopen" 3
+# write_value "$IPV4_PATH/tcp_no_metrics_save" 1
+#
+
+#write_value "$IPV4_PATH/tcp_low_latency" 1
+#write_value "$IPV4_PATH/tcp_timestamps" 0
+#write_value "$IPV4_PATH/tcp_slow_start_after_idle" 0
+#write_value "$IPV4_PATH/tcp_window_scaling" 1
+#write_value "$IPV4_PATH/tcp_congestion_control" "bbr"
+#write_value "$IPV4_PATH/route.flush" 1
+
+sysctl -w net.ipv4.tcp_low_latency=1
+sysctl -w net.ipv4.tcp_timestamps=0
+sysctl -w net.ipv4.tcp_slow_start_after_idle=0
+sysctl -w net.ipv4.tcp_window_scaling=1
+sysctl -w net.ipv4.tcp_congestion_control=bbr
+sysctl -w net.ipv4.route.flush=1
+sysctl -w net.core.rmem_default=31457280
+sysctl -w net.core.rmem_max=33554432
+sysctl -w net.core.wmem_default=31457280
+sysctl -w net.core.wmem_max=33554432
+sysctl -w net.core.somaxconn=65535
+sysctl -w net.core.netdev_max_backlog=65536
+sysctl -w net.core.optmem_max=25165824
+sysctl -w net.ipv4.tcp_mem="786432 1048576 26777216"
+sysctl -w net.ipv4.udp_mem="65536 131072 262144"
+sysctl -w net.ipv4.tcp_rmem="8192 87380 33554432"
+sysctl -w net.ipv4.udp_rmem_min=16384
+sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
+sysctl -w net.ipv4.udp_wmem_min=16384
+
+log_info "Done."
+
+log_info "Applying Latency Tweaks"
+
+# Disable transparent huge pages
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
+# Disable automatic NUMA memory balancing
+echo 0 > /proc/sys/kernel/numa_balancing
+# Disable kernel samepage merging
+echo 0 > /sys/kernel/mm/ksm/run
+
+log_info "Done."
+
+# Tweak scheduler to have less Latency
+# Credits to RedHat & tytydraco & KTweak
+#log_info "Tweaking scheduler to reduce latency"
+#write_value "$KERNEL_PATH/sched_migration_cost_ns" 50000
+#write_value "$KERNEL_PATH/sched_min_granularity_ns" 1000000
+#write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 1500000
+
+log_info "Tweaking scheduler to reduce overhead"
+
+# Maximizing I/O Throughput
+# Minimal preemption granularity for CPU-bound tasks:
+write_value "$KERNEL_PATH/sched_min_granularity_ns" 10000000
+# This option delays the preemption effects of decoupled workloads
+# and reduces their over-scheduling. Synchronous workloads will still
+# have immediate wakeup/sleep latencies.
+write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 15000000
+# Sets the time before the kernel considers migrating a proccess to another core
+write_value "$KERNEL_PATH/sched_migration_cost_ns" 5000000
+
 log_info "Done."
 
 log_info "Tweaks applied successfully. Enjoy :)"
