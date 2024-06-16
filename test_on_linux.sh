@@ -36,8 +36,13 @@ echo 0 > /proc/sys/kernel/numa_balancing
 # Disable kernel samepage merging
 echo 0 > /sys/kernel/mm/ksm/run
 
+#https://forum.endeavouros.com/t/sysctl-output-changed-from-kernel-5-10-to-5-13-why/17097/2
+#They have been moved to debugfs and can be found here: /sys/kernel/debug/sched
+#sysctl is no longer able to see them
+
 # Maximizing I/O Throughput
 # Minimal preemption granularity for CPU-bound tasks:
+#echo 10000000 > /proc/sys/kernel/debug/sched_min_granularity_ns
 sysctl -w kernel.sched_min_granularity_ns=10000000
 # This option delays the preemption effects of decoupled workloads
 # and reduces their over-scheduling. Synchronous workloads will still
