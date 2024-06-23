@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v103
+# YAKT v104
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -78,7 +78,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v103"
+log_info "Starting YAKT v104"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -262,12 +262,14 @@ log_info "Applying Network Tweaks"
 #write_value "$IPV4_PATH/tcp_congestion_control" "bbr"
 #write_value "$IPV4_PATH/route.flush" 1
 
+# This value overrides net.core.wmem_default used by other protocols.
+# It is usually lower than net.core.wmem_default. Default: 16K
+#sysctl -w net.ipv4.tcp_window_scaling=1
+#sysctl -w net.ipv4.tcp_congestion_control=bbr
+#sysctl -w net.ipv4.route.flush=1
 sysctl -w net.ipv4.tcp_low_latency=1
 sysctl -w net.ipv4.tcp_timestamps=0
 sysctl -w net.ipv4.tcp_slow_start_after_idle=0
-sysctl -w net.ipv4.tcp_window_scaling=1
-sysctl -w net.ipv4.tcp_congestion_control=bbr
-sysctl -w net.ipv4.route.flush=1
 sysctl -w net.core.rmem_default=31457280
 sysctl -w net.core.rmem_max=33554432
 sysctl -w net.core.wmem_default=31457280
