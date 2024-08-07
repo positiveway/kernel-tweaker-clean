@@ -9,12 +9,29 @@ sysctl -w vm.dirty_ratio=60
 sysctl -w vm.page_lock_unfairness=4
 sysctl -w vm.watermark_boost_factor=0
 
-#sysctl -w net.ipv4.tcp_window_scaling=1
-#sysctl -w net.ipv4.tcp_congestion_control=bbr
-#sysctl -w net.ipv4.route.flush=1
+NETWORK_TWEAK_PERFORMANCE=true
+NETWORK_TWEAK_EXTRA=false
+NETWORK_TWEAK_MEMORY=false
+
+if $NETWORK_TWEAK_PERFORMANCE
+then
+echo "NETWORK_TWEAK_PERFORMANCE"
 sysctl -w net.ipv4.tcp_low_latency=1
 sysctl -w net.ipv4.tcp_timestamps=0
 sysctl -w net.ipv4.tcp_slow_start_after_idle=0
+fi
+if $NETWORK_TWEAK_EXTRA
+then
+echo "NETWORK_TWEAK_EXTRA"
+# This value overrides net.core.wmem_default used by other protocols.
+# It is usually lower than net.core.wmem_default. Default: 16K
+sysctl -w net.ipv4.tcp_window_scaling=1
+sysctl -w net.ipv4.tcp_congestion_control=bbr
+sysctl -w net.ipv4.route.flush=1
+fi
+if $NETWORK_TWEAK_MEMORY
+then
+echo "NETWORK_TWEAK_MEMORY"
 sysctl -w net.core.rmem_default=31457280
 sysctl -w net.core.rmem_max=33554432
 sysctl -w net.core.wmem_default=31457280
@@ -28,6 +45,7 @@ sysctl -w net.ipv4.tcp_rmem="8192 87380 33554432"
 sysctl -w net.ipv4.udp_rmem_min=16384
 sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
 sysctl -w net.ipv4.udp_wmem_min=16384
+fi
 
 # Disable transparent huge pages
 echo never > /sys/kernel/mm/transparent_hugepage/enabled

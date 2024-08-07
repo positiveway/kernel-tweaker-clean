@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v104
+# YAKT v105
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -51,6 +51,10 @@ write_value() {
     fi
 }
 
+NETWORK_TWEAK_PERFORMANCE=true
+NETWORK_TWEAK_EXTRA=false
+NETWORK_TWEAK_MEMORY=false
+
 MODDIR=${0%/*} # Get parent directory
 
 # Modify the filenames for logs
@@ -78,7 +82,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v104"
+log_info "Starting YAKT v105"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -262,14 +266,25 @@ log_info "Applying Network Tweaks"
 #write_value "$IPV4_PATH/tcp_congestion_control" "bbr"
 #write_value "$IPV4_PATH/route.flush" 1
 
-# This value overrides net.core.wmem_default used by other protocols.
-# It is usually lower than net.core.wmem_default. Default: 16K
-#sysctl -w net.ipv4.tcp_window_scaling=1
-#sysctl -w net.ipv4.tcp_congestion_control=bbr
-#sysctl -w net.ipv4.route.flush=1
+if $NETWORK_TWEAK_PERFORMANCE
+then
+log_info "NETWORK_TWEAK_PERFORMANCE"
 sysctl -w net.ipv4.tcp_low_latency=1
 sysctl -w net.ipv4.tcp_timestamps=0
 sysctl -w net.ipv4.tcp_slow_start_after_idle=0
+fi
+if $NETWORK_TWEAK_EXTRA
+then
+log_info "NETWORK_TWEAK_EXTRA"
+# This value overrides net.core.wmem_default used by other protocols.
+# It is usually lower than net.core.wmem_default. Default: 16K
+sysctl -w net.ipv4.tcp_window_scaling=1
+sysctl -w net.ipv4.tcp_congestion_control=bbr
+sysctl -w net.ipv4.route.flush=1
+fi
+if $NETWORK_TWEAK_MEMORY
+then
+log_info "NETWORK_TWEAK_MEMORY"
 sysctl -w net.core.rmem_default=31457280
 sysctl -w net.core.rmem_max=33554432
 sysctl -w net.core.wmem_default=31457280
@@ -283,7 +298,7 @@ sysctl -w net.ipv4.tcp_rmem="8192 87380 33554432"
 sysctl -w net.ipv4.udp_rmem_min=16384
 sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
 sysctl -w net.ipv4.udp_wmem_min=16384
-
+fi
 log_info "Done."
 
 log_info "Applying Latency Tweaks"
