@@ -1,6 +1,6 @@
 # No Spaces are allowed between '=' and value
 
-sysctl -w vm.swappiness=0
+sysctl -w vm.swappiness=20
 sysctl -w vm.page-cluster=0
 sysctl -w vm.vfs_cache_pressure=50
 sysctl -w vm.stat_interval=30
@@ -12,6 +12,7 @@ sysctl -w vm.watermark_boost_factor=0
 NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
+MEMORY_TWEAK_LATENCY=false
 
 if $NETWORK_TWEAK_PERFORMANCE
 then
@@ -47,12 +48,15 @@ sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
 sysctl -w net.ipv4.udp_wmem_min=16384
 fi
 
+if $MEMORY_TWEAK_LATENCY
+then
 # Disable transparent huge pages
 echo never > /sys/kernel/mm/transparent_hugepage/enabled
 # Disable automatic NUMA memory balancing
 echo 0 > /proc/sys/kernel/numa_balancing
 # Disable kernel samepage merging
 echo 0 > /sys/kernel/mm/ksm/run
+fi
 
 #https://forum.endeavouros.com/t/sysctl-output-changed-from-kernel-5-10-to-5-13-why/17097/2
 #They have been moved to debugfs and can be found here: /sys/kernel/debug/sched

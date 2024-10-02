@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v105
+# YAKT v107
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -54,6 +54,7 @@ write_value() {
 NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
+MEMORY_TWEAK_LATENCY=false
 
 MODDIR=${0%/*} # Get parent directory
 
@@ -82,7 +83,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v105"
+log_info "Starting YAKT v107"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -221,24 +222,6 @@ log_info "Done."
 # Credits to RedHat for dirty_ratio
 log_info "Applying RAM Tweaks"
 
-#write_value "$MEMORY_PATH/swappiness" 0
-#write_value "$MEMORY_PATH/page-cluster" 0
-#write_value "$MEMORY_PATH/vfs_cache_pressure" 50
-#write_value "$MEMORY_PATH/stat_interval" 30
-#write_value "$MEMORY_PATH/compaction_proactiveness" 0
-#write_value "$MEMORY_PATH/dirty_ratio" 60
-#write_value "$MEMORY_PATH/page_lock_unfairness" 4
-#write_value "$MEMORY_PATH/watermark_boost_factor" 0
-
-sysctl -w vm.swappiness=0
-sysctl -w vm.page-cluster=0
-sysctl -w vm.vfs_cache_pressure=50
-sysctl -w vm.stat_interval=30
-sysctl -w vm.compaction_proactiveness=0
-sysctl -w vm.dirty_ratio=60
-sysctl -w vm.page_lock_unfairness=4
-sysctl -w vm.watermark_boost_factor=0
-
 #log_info "Detecting if your device has less or more than 8GB of RAM"
 #if [ $TOTAL_RAM -lt 8000 ]; then
 #    log_info "Detected 8GB or less"
@@ -249,7 +232,38 @@ sysctl -w vm.watermark_boost_factor=0
 #    log_info "Applying appropriate tweaks..."
 #    write_value "$MEMORY_PATH/swappiness" 0
 #fi
+
+write_value "$MEMORY_PATH/swappiness" 20
+write_value "$MEMORY_PATH/page-cluster" 0
+write_value "$MEMORY_PATH/vfs_cache_pressure" 50
+write_value "$MEMORY_PATH/stat_interval" 30
+write_value "$MEMORY_PATH/compaction_proactiveness" 0
+write_value "$MEMORY_PATH/dirty_ratio" 60
+write_value "$MEMORY_PATH/page_lock_unfairness" 4
+write_value "$MEMORY_PATH/watermark_boost_factor" 0
+
+#sysctl -w vm.swappiness=20
+#sysctl -w vm.page-cluster=0
+#sysctl -w vm.vfs_cache_pressure=50
+#sysctl -w vm.stat_interval=30
+#sysctl -w vm.compaction_proactiveness=0
+#sysctl -w vm.dirty_ratio=60
+#sysctl -w vm.page_lock_unfairness=4
+#sysctl -w vm.watermark_boost_factor=0
+
 log_info "Done."
+
+if $MEMORY_TWEAK_LATENCY
+then
+log_info "Applying Memory Latency Tweaks"
+# Disable transparent huge pages
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
+# Disable automatic NUMA memory balancing
+echo 0 > /proc/sys/kernel/numa_balancing
+# Disable kernel samepage merging
+echo 0 > /sys/kernel/mm/ksm/run
+log_info "Done."
+fi
 
 log_info "Applying Network Tweaks"
 # Network tweaks
@@ -299,17 +313,6 @@ sysctl -w net.ipv4.udp_rmem_min=16384
 sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
 sysctl -w net.ipv4.udp_wmem_min=16384
 fi
-log_info "Done."
-
-log_info "Applying Latency Tweaks"
-
-# Disable transparent huge pages
-echo never > /sys/kernel/mm/transparent_hugepage/enabled
-# Disable automatic NUMA memory balancing
-echo 0 > /proc/sys/kernel/numa_balancing
-# Disable kernel samepage merging
-echo 0 > /sys/kernel/mm/ksm/run
-
 log_info "Done."
 
 # Tweak scheduler to have less Latency
