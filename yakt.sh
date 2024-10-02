@@ -118,19 +118,6 @@ log_info "Enabling child_runs_first"
 write_value "$KERNEL_PATH/sched_child_runs_first" 1
 log_info "Done."
 
-# Mglru tweaks
-# Credits to Arter97
-log_info "Checking if your kernel has MGLRU support..."
-if [ -d "$MGLRU_PATH" ]; then
-    log_info "MGLRU support found."
-    log_info "Tweaking MGLRU settings..."
-    write_value "$MGLRU_PATH/min_ttl_ms" 5000
-    log_info "Done."
-else
-    log_info "MGLRU support not found."
-    log_info "Aborting MGLRU tweaks..."
-fi
-
 # Set kernel.perf_cpu_time_max_percent to 10
 log_info "Setting perf_cpu_time_max_percent to 10"
 write_value "$KERNEL_PATH/perf_cpu_time_max_percent" 10
@@ -199,6 +186,45 @@ if [ -d "$MODULE_PATH/mmc_core" ]; then
     log_info "Done."
 fi
 
+# Enable power efficiency
+log_info "Enabling power efficiency..."
+write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
+log_info "Done."
+
+# Tweak scheduler to have less Latency
+# Credits to RedHat & tytydraco & KTweak
+#log_info "Tweaking scheduler to reduce latency"
+#write_value "$KERNEL_PATH/sched_migration_cost_ns" 50000
+#write_value "$KERNEL_PATH/sched_min_granularity_ns" 1000000
+#write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 1500000
+
+log_info "Tweaking scheduler to reduce overhead"
+
+# Maximizing I/O Throughput
+# Minimal preemption granularity for CPU-bound tasks:
+write_value "$KERNEL_PATH/sched_min_granularity_ns" 10000000
+# This option delays the preemption effects of decoupled workloads
+# and reduces their over-scheduling. Synchronous workloads will still
+# have immediate wakeup/sleep latencies.
+write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 15000000
+# Sets the time before the kernel considers migrating a proccess to another core
+write_value "$KERNEL_PATH/sched_migration_cost_ns" 5000000
+
+log_info "Done."
+
+# Mglru tweaks
+# Credits to Arter97
+log_info "Checking if your kernel has MGLRU support..."
+if [ -d "$MGLRU_PATH" ]; then
+    log_info "MGLRU support found."
+    log_info "Tweaking MGLRU settings..."
+    write_value "$MGLRU_PATH/min_ttl_ms" 5000
+    log_info "Done."
+else
+    log_info "MGLRU support not found."
+    log_info "Aborting MGLRU tweaks..."
+fi
+
 # Zswap tweaks
 log_info "Checking if your kernel supports zswap..."
 if [ -d "$MODULE_PATH/zswap" ]; then
@@ -211,11 +237,6 @@ if [ -d "$MODULE_PATH/zswap" ]; then
 else
     log_info "Your kernel doesn't support zswap, aborting it..."
 fi
-
-# Enable power efficiency
-log_info "Enabling power efficiency..."
-write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
-log_info "Done."
 
 # Apply RAM tweaks
 # The stat_interval reduces jitter (Credits to kdrag0n)
@@ -313,27 +334,6 @@ sysctl -w net.ipv4.udp_rmem_min=16384
 sysctl -w net.ipv4.tcp_wmem="8192 65536 33554432"
 sysctl -w net.ipv4.udp_wmem_min=16384
 fi
-log_info "Done."
-
-# Tweak scheduler to have less Latency
-# Credits to RedHat & tytydraco & KTweak
-#log_info "Tweaking scheduler to reduce latency"
-#write_value "$KERNEL_PATH/sched_migration_cost_ns" 50000
-#write_value "$KERNEL_PATH/sched_min_granularity_ns" 1000000
-#write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 1500000
-
-log_info "Tweaking scheduler to reduce overhead"
-
-# Maximizing I/O Throughput
-# Minimal preemption granularity for CPU-bound tasks:
-write_value "$KERNEL_PATH/sched_min_granularity_ns" 10000000
-# This option delays the preemption effects of decoupled workloads
-# and reduces their over-scheduling. Synchronous workloads will still
-# have immediate wakeup/sleep latencies.
-write_value "$KERNEL_PATH/sched_wakeup_granularity_ns" 15000000
-# Sets the time before the kernel considers migrating a proccess to another core
-write_value "$KERNEL_PATH/sched_migration_cost_ns" 5000000
-
 log_info "Done."
 
 log_info "Tweaks applied successfully. Enjoy :)"
