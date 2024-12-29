@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v107
+# YAKT v701
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -54,7 +54,7 @@ write_value() {
 NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
-MEMORY_TWEAK_LATENCY=false
+MEMORY_TWEAK_LATENCY=true
 
 MODDIR=${0%/*} # Get parent directory
 
@@ -83,7 +83,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v107"
+log_info "Starting YAKT v701"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -233,6 +233,8 @@ if [ -d "$MODULE_PATH/zswap" ]; then
     log_info "Set zswap compressor to lz4 (fastest compressor)."
     write_value "$MODULE_PATH/zswap/parameters/zpool" zsmalloc
     log_info "Set zpool to zsmalloc."
+    write_value "$MODULE_PATH/zswap/parameters/enabled" 0
+    log_info "Disable zswap."
     log_info "Tweaks applied."
 else
     log_info "Your kernel doesn't support zswap, aborting it..."
@@ -254,7 +256,7 @@ log_info "Applying RAM Tweaks"
 #    write_value "$MEMORY_PATH/swappiness" 0
 #fi
 
-write_value "$MEMORY_PATH/swappiness" 20
+write_value "$MEMORY_PATH/swappiness" 0
 write_value "$MEMORY_PATH/page-cluster" 0
 write_value "$MEMORY_PATH/vfs_cache_pressure" 50
 write_value "$MEMORY_PATH/stat_interval" 30
@@ -278,11 +280,23 @@ if $MEMORY_TWEAK_LATENCY
 then
 log_info "Applying Memory Latency Tweaks"
 # Disable transparent huge pages
-echo never > /sys/kernel/mm/transparent_hugepage/enabled
+write_value "/sys/kernel/mm/transparent_hugepage/enabled" always
 # Disable automatic NUMA memory balancing
-echo 0 > /proc/sys/kernel/numa_balancing
+write_value "/proc/sys/kernel/numa_balancing" 0
 # Disable kernel samepage merging
-echo 0 > /sys/kernel/mm/ksm/run
+write_value "/sys/kernel/mm/ksm/run" 0
+# Disable Zram ans swaps
+tail -n +2 /proc/swaps | while read -r line; do
+    # Extract the filename (first column)
+    filename=$(echo "$line" | awk '{print $1}')
+
+    # Disable swap for the filename
+    if swapoff "$filename"; then
+        log_info "Disabled swap for: $filename"
+    else
+        log_info "Failed to disable swap for: $filename"
+    fi
+done
 log_info "Done."
 fi
 
@@ -337,3 +351,181 @@ fi
 log_info "Done."
 
 log_info "Tweaks applied successfully. Enjoy :)"
+
+#Ktweak starts
+# The name of the current branch for logging purposes
+BRANCH="balance"
+
+# Maximum unsigned integer size in C
+UINT_MAX="4294967295"
+
+# Duration in nanoseconds of one scheduling period
+SCHED_PERIOD="$((4 * 1000 * 1000))"
+
+# How many tasks should we have at a maximum in one scheduling period
+SCHED_TASKS="8"
+
+# Detect if we are running on Android
+grep -q android /proc/cmdline && ANDROID=true
+
+# Sync to data in the rare case a device crashes
+sync
+
+# Limit max perf event processing time to this much CPU usage
+write_value "/proc/sys/kernel/perf_cpu_time_max_percent" 5
+
+# Group tasks for less stutter but less throughput
+write_value "/proc/sys/kernel/sched_autogroup_enabled" 1
+
+# Execute child process before parent after fork
+write_value "/proc/sys/kernel/sched_child_runs_first" 1
+
+# Preliminary requirement for the following values
+write_value "/proc/sys/kernel/sched_tunable_scaling" 0
+
+# Reduce the maximum scheduling period for lower latency
+write_value "/proc/sys/kernel/sched_latency_ns" "$SCHED_PERIOD"
+
+# Schedule this ratio of tasks in the guarenteed sched period
+write_value "/proc/sys/kernel/sched_min_granularity_ns" "$((SCHED_PERIOD / SCHED_TASKS))"
+
+# Require preeptive tasks to surpass half of a sched period in vmruntime
+write_value "/proc/sys/kernel/sched_wakeup_granularity_ns" "$((SCHED_PERIOD / 2))"
+
+# Reduce the frequency of task migrations
+write_value "/proc/sys/kernel/sched_migration_cost_ns" 5000000
+
+# Always allow sched boosting on top-app tasks
+[[ "$ANDROID" == true ]] && write_value "/proc/sys/kernel/sched_min_task_util_for_colocation" 0
+
+# Improve real time latencies by reducing the scheduler migration time
+write_value "/proc/sys/kernel/sched_nr_migrate" 32
+
+# Disable scheduler statistics to reduce overhead
+write_value "/proc/sys/kernel/sched_schedstats" 0
+
+# Disable unnecessary printk logging
+write_value "/proc/sys/kernel/printk_devkmsg" off
+
+# Start non-blocking writeback later
+write_value "/proc/sys/vm/dirty_background_ratio" 10
+
+# Start blocking writeback later
+write_value "/proc/sys/vm/dirty_ratio" 30
+
+# Require dirty memory to stay in memory for longer
+write_value "/proc/sys/vm/dirty_expire_centisecs" 3000
+
+# Run the dirty memory flusher threads less often
+write_value "/proc/sys/vm/dirty_writeback_centisecs" 3000
+
+# Disable read-ahead for swap devices
+write_value "/proc/sys/vm/page-cluster" 0
+
+# Update /proc/stat less often to reduce jitter
+write_value "/proc/sys/vm/stat_interval" 10
+
+# Swap to the swap device at a fair rate
+write_value "/proc/sys/vm/swappiness" 0
+
+# Fairly prioritize page cache and file structures
+write_value "/proc/sys/vm/vfs_cache_pressure" 100
+
+# Enable Explicit Congestion Control
+#write_value "/proc/sys/net/ipv4/tcp_ecn" 1
+
+# Enable fast socket open for receiver and sender
+#write_value "/proc/sys/net/ipv4/tcp_fastopen" 3
+
+# Disable SYN cookies
+#write_value "/proc/sys/net/ipv4/tcp_syncookies" 0
+
+if [[ -f "/sys/kernel/debug/sched_features" ]]
+then
+	# Consider scheduling tasks that are eager to run
+	write_value "/sys/kernel/debug/sched_features" NEXT_BUDDY
+
+	# Schedule tasks on their origin CPU if possible
+	write_value "/sys/kernel/debug/sched_features" TTWU_QUEUE
+fi
+
+[[ "$ANDROID" == true ]] && if [[ -d "/dev/stune/" ]]
+then
+	# We are not concerned with prioritizing latency
+	write_value "/dev/stune/top-app/schedtune.prefer_idle" 0
+
+	# Mark top-app as boosted, find high-performing CPUs
+	write_value "/dev/stune/top-app/schedtune.boost" 1
+fi
+
+# Loop over each CPU in the system
+for cpu in /sys/devices/system/cpu/cpu*/cpufreq
+do
+	# Fetch the available governors from the CPU
+	avail_govs="$(cat "$cpu/scaling_available_governors")"
+
+	# Attempt to set the governor in this order
+	for governor in schedutil interactive
+	do
+		# Once a matching governor is found, set it and break for this CPU
+		if [[ "$avail_govs" == *"$governor"* ]]
+		then
+			write_value "$cpu/scaling_governor" "$governor"
+			break
+		fi
+	done
+done
+
+# Apply governor specific tunables for schedutil
+find /sys/devices/system/cpu/ -name schedutil -type d | while IFS= read -r governor
+do
+	# Consider changing frequencies once per scheduling period
+	write_value "$governor/up_rate_limit_us" "$((SCHED_PERIOD / 1000))"
+	write_value "$governor/down_rate_limit_us" "$((4 * SCHED_PERIOD / 1000))"
+	write_value "$governor/rate_limit_us" "$((SCHED_PERIOD / 1000))"
+
+	# Jump to hispeed frequency at this load percentage
+	write_value "$governor/hispeed_load" 90
+	write_value "$governor/hispeed_freq" "$UINT_MAX"
+done
+
+# Apply governor specific tunables for interactive
+find /sys/devices/system/cpu/ -name interactive -type d | while IFS= read -r governor
+do
+	# Consider changing frequencies once per scheduling period
+	write_value "$governor/timer_rate" "$((SCHED_PERIOD / 1000))"
+	write_value "$governor/min_sample_time" "$((SCHED_PERIOD / 1000))"
+
+	# Jump to hispeed frequency at this load percentage
+	write_value "$governor/go_hispeed_load" 90
+	write_value "$governor/hispeed_freq" "$UINT_MAX"
+done
+
+for queue in /sys/block/*/queue
+do
+	# Choose the first governor available
+	avail_scheds="$(cat "$queue/scheduler")"
+	for sched in cfq noop kyber bfq mq-deadline none
+	do
+		if [[ "$avail_scheds" == *"$sched"* ]]
+		then
+			write_value "$queue/scheduler" "$sched"
+			break
+		fi
+	done
+
+	# Do not use I/O as a source of randomness
+	write_value "$queue/add_random" 0
+
+	# Disable I/O statistics accounting
+	write_value "$queue/iostats" 0
+
+	# Reduce heuristic read-ahead in exchange for I/O latency
+	write_value "$queue/read_ahead_kb" 128
+
+	# Reduce the maximum number of I/O requests in exchange for latency
+	write_value "$queue/nr_requests" 64
+done
+
+# Always return success, even if the last write_value fails
+exit 0

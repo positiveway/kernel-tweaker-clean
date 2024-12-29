@@ -1,5 +1,19 @@
 # No Spaces are allowed between '=' and value
 
+tail -n +2 /proc/swaps | while read -r line; do
+    # Extract the filename (first column)
+    filename=$(echo "$line" | awk '{print $1}')
+
+    # Disable swap for the filename
+    if sudo swapoff "$filename"; then
+        echo "Disabled swap for: $filename"
+    else
+        echo "Failed to disable swap for: $filename"
+    fi
+done
+
+exit
+
 sysctl -w vm.swappiness=20
 sysctl -w vm.page-cluster=0
 sysctl -w vm.vfs_cache_pressure=50
