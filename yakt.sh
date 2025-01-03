@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# YAKT v701
+# YAKT v702
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -56,6 +56,8 @@ NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
 MEMORY_TWEAK_LATENCY=true
 
+CPU_TIME_MAX_PCT=10
+
 MODDIR=${0%/*} # Get parent directory
 
 # Modify the filenames for logs
@@ -83,7 +85,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v701"
+log_info "Starting YAKT v702"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -118,9 +120,9 @@ log_info "Enabling child_runs_first"
 write_value "$KERNEL_PATH/sched_child_runs_first" 1
 log_info "Done."
 
-# Set kernel.perf_cpu_time_max_percent to 10
-log_info "Setting perf_cpu_time_max_percent to 10"
-write_value "$KERNEL_PATH/perf_cpu_time_max_percent" 10
+# Set kernel.perf_cpu_time_max_percent to CPU_TIME_MAX_PCT
+log_info "Setting perf_cpu_time_max_percent to $CPU_TIME_MAX_PCT"
+write_value "$KERNEL_PATH/perf_cpu_time_max_percent" $CPU_TIME_MAX_PCT
 log_info "Done."
 
 # Disable certain scheduler logs/stats
@@ -372,7 +374,7 @@ grep -q android /proc/cmdline && ANDROID=true
 sync
 
 # Limit max perf event processing time to this much CPU usage
-write_value "/proc/sys/kernel/perf_cpu_time_max_percent" 5
+write_value "/proc/sys/kernel/perf_cpu_time_max_percent" $CPU_TIME_MAX_PCT
 
 # Group tasks for less stutter but less throughput
 write_value "/proc/sys/kernel/sched_autogroup_enabled" 1
