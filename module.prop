@@ -1,6 +1,6 @@
 id=YAKT
 name=Yet Another Kernel Tweaker
-version=v702
+version=v703
 versionCode=1
 author=NotZeetaa
 description=This modules tweaks your kernel parameters.

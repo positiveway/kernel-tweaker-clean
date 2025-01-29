@@ -1,5 +1,6 @@
 #!/system/bin/sh
-# YAKT v702
+
+# YAKT v703
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -54,9 +55,7 @@ write_value() {
 NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
-MEMORY_TWEAK_LATENCY=true
-
-CPU_TIME_MAX_PCT=10
+MEMORY_TWEAK_LATENCY=false
 
 MODDIR=${0%/*} # Get parent directory
 
@@ -85,7 +84,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v702"
+log_info "Starting YAKT v703"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -120,9 +119,9 @@ log_info "Enabling child_runs_first"
 write_value "$KERNEL_PATH/sched_child_runs_first" 1
 log_info "Done."
 
-# Set kernel.perf_cpu_time_max_percent to CPU_TIME_MAX_PCT
-log_info "Setting perf_cpu_time_max_percent to $CPU_TIME_MAX_PCT"
-write_value "$KERNEL_PATH/perf_cpu_time_max_percent" $CPU_TIME_MAX_PCT
+# Set kernel.perf_cpu_time_max_percent to 10
+log_info "Setting perf_cpu_time_max_percent to 10"
+write_value "$KERNEL_PATH/perf_cpu_time_max_percent" 10
 log_info "Done."
 
 # Disable certain scheduler logs/stats
@@ -235,8 +234,8 @@ if [ -d "$MODULE_PATH/zswap" ]; then
     log_info "Set zswap compressor to lz4 (fastest compressor)."
     write_value "$MODULE_PATH/zswap/parameters/zpool" zsmalloc
     log_info "Set zpool to zsmalloc."
-    write_value "$MODULE_PATH/zswap/parameters/enabled" 0
-    log_info "Disable zswap."
+#    write_value "$MODULE_PATH/zswap/parameters/enabled" 0
+#    log_info "Disable zswap."
     log_info "Tweaks applied."
 else
     log_info "Your kernel doesn't support zswap, aborting it..."
@@ -258,7 +257,7 @@ log_info "Applying RAM Tweaks"
 #    write_value "$MEMORY_PATH/swappiness" 0
 #fi
 
-write_value "$MEMORY_PATH/swappiness" 0
+write_value "$MEMORY_PATH/swappiness" 100
 write_value "$MEMORY_PATH/page-cluster" 0
 write_value "$MEMORY_PATH/vfs_cache_pressure" 50
 write_value "$MEMORY_PATH/stat_interval" 30
@@ -371,10 +370,10 @@ SCHED_TASKS="8"
 grep -q android /proc/cmdline && ANDROID=true
 
 # Sync to data in the rare case a device crashes
-sync
+#sync
 
 # Limit max perf event processing time to this much CPU usage
-write_value "/proc/sys/kernel/perf_cpu_time_max_percent" $CPU_TIME_MAX_PCT
+write_value "/proc/sys/kernel/perf_cpu_time_max_percent" 10
 
 # Group tasks for less stutter but less throughput
 write_value "/proc/sys/kernel/sched_autogroup_enabled" 1
@@ -428,19 +427,19 @@ write_value "/proc/sys/vm/page-cluster" 0
 write_value "/proc/sys/vm/stat_interval" 10
 
 # Swap to the swap device at a fair rate
-write_value "/proc/sys/vm/swappiness" 0
+write_value "/proc/sys/vm/swappiness" 100
 
 # Fairly prioritize page cache and file structures
 write_value "/proc/sys/vm/vfs_cache_pressure" 100
 
 # Enable Explicit Congestion Control
-#write_value "/proc/sys/net/ipv4/tcp_ecn" 1
+write_value "/proc/sys/net/ipv4/tcp_ecn" 1
 
 # Enable fast socket open for receiver and sender
-#write_value "/proc/sys/net/ipv4/tcp_fastopen" 3
+write_value "/proc/sys/net/ipv4/tcp_fastopen" 3
 
 # Disable SYN cookies
-#write_value "/proc/sys/net/ipv4/tcp_syncookies" 0
+write_value "/proc/sys/net/ipv4/tcp_syncookies" 0
 
 if [[ -f "/sys/kernel/debug/sched_features" ]]
 then
