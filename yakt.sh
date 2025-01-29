@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-# YAKT v703
+# YAKT v704
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -84,7 +84,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v703"
+log_info "Starting YAKT v704"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -257,7 +257,7 @@ log_info "Applying RAM Tweaks"
 #    write_value "$MEMORY_PATH/swappiness" 0
 #fi
 
-write_value "$MEMORY_PATH/swappiness" 100
+write_value "$MEMORY_PATH/swappiness" 60
 write_value "$MEMORY_PATH/page-cluster" 0
 write_value "$MEMORY_PATH/vfs_cache_pressure" 50
 write_value "$MEMORY_PATH/stat_interval" 30
@@ -427,7 +427,7 @@ write_value "/proc/sys/vm/page-cluster" 0
 write_value "/proc/sys/vm/stat_interval" 10
 
 # Swap to the swap device at a fair rate
-write_value "/proc/sys/vm/swappiness" 100
+write_value "/proc/sys/vm/swappiness" 60
 
 # Fairly prioritize page cache and file structures
 write_value "/proc/sys/vm/vfs_cache_pressure" 100
