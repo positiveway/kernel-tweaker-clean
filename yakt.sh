@@ -56,6 +56,7 @@ NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
 MEMORY_TWEAK_LATENCY=false
+PERF_CPU_MAX_PCT=10
 
 MODDIR=${0%/*} # Get parent directory
 
@@ -119,9 +120,9 @@ log_info "Enabling child_runs_first"
 write_value "$KERNEL_PATH/sched_child_runs_first" 1
 log_info "Done."
 
-# Set kernel.perf_cpu_time_max_percent to 10
-log_info "Setting perf_cpu_time_max_percent to 10"
-write_value "$KERNEL_PATH/perf_cpu_time_max_percent" 10
+# Set kernel.perf_cpu_time_max_percent to PERF_CPU_MAX_PCT
+log_info "Setting perf_cpu_time_max_percent to $PERF_CPU_MAX_PCT"
+write_value "$KERNEL_PATH/perf_cpu_time_max_percent" $PERF_CPU_MAX_PCT
 log_info "Done."
 
 # Disable certain scheduler logs/stats
@@ -373,7 +374,7 @@ grep -q android /proc/cmdline && ANDROID=true
 #sync
 
 # Limit max perf event processing time to this much CPU usage
-write_value "/proc/sys/kernel/perf_cpu_time_max_percent" 10
+write_value "/proc/sys/kernel/perf_cpu_time_max_percent" $PERF_CPU_MAX_PCT
 
 # Group tasks for less stutter but less throughput
 write_value "/proc/sys/kernel/sched_autogroup_enabled" 1
