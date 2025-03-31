@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-# YAKT v704
+# YAKT v705
 # Author: @NotZeetaa (Github)
 # ×××××××××××××××××××××××××× #
 
@@ -56,7 +56,7 @@ NETWORK_TWEAK_PERFORMANCE=true
 NETWORK_TWEAK_EXTRA=false
 NETWORK_TWEAK_MEMORY=false
 MEMORY_TWEAK_LATENCY=false
-PERF_CPU_MAX_PCT=10
+PERF_CPU_MAX_PCT=5
 
 MODDIR=${0%/*} # Get parent directory
 
@@ -85,7 +85,7 @@ ANDROID_VERSION=$(getprop ro.build.version.release)
 TOTAL_RAM=$(free -m | awk '/Mem/{print $2}')
 
 # Log starting information
-log_info "Starting YAKT v704"
+log_info "Starting YAKT v705"
 log_info "Build Date: 06/06/2024"
 log_info "Author: @NotZeetaa (Github)"
 log_info "Device: $(getprop ro.product.system.model)"
@@ -189,9 +189,9 @@ if [ -d "$MODULE_PATH/mmc_core" ]; then
 fi
 
 # Enable power efficiency
-log_info "Enabling power efficiency..."
-write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
-log_info "Done."
+#log_info "Enabling power efficiency..."
+#write_value "$MODULE_PATH/workqueue/parameters/power_efficient" 1
+#log_info "Done."
 
 # Tweak scheduler to have less Latency
 # Credits to RedHat & tytydraco & KTweak
@@ -258,7 +258,7 @@ log_info "Applying RAM Tweaks"
 #    write_value "$MEMORY_PATH/swappiness" 0
 #fi
 
-write_value "$MEMORY_PATH/swappiness" 60
+write_value "$MEMORY_PATH/swappiness" 0
 write_value "$MEMORY_PATH/page-cluster" 0
 write_value "$MEMORY_PATH/vfs_cache_pressure" 50
 write_value "$MEMORY_PATH/stat_interval" 30
@@ -281,7 +281,7 @@ log_info "Done."
 if $MEMORY_TWEAK_LATENCY
 then
 log_info "Applying Memory Latency Tweaks"
-# Disable transparent huge pages
+# Enable transparent huge pages
 write_value "/sys/kernel/mm/transparent_hugepage/enabled" always
 # Disable automatic NUMA memory balancing
 write_value "/proc/sys/kernel/numa_balancing" 0
@@ -528,6 +528,15 @@ do
 	# Reduce the maximum number of I/O requests in exchange for latency
 	write_value "$queue/nr_requests" 64
 done
+
+# My tweak
+write_value "$MEMORY_PATH/swappiness" 0
+
+# Disable watchdog
+log_info "Disable watchdog..."
+write_value "$MODULE_PATH/workqueue/parameters/watchdog_thresh" 0
+log_info "Done."
+
 
 # Always return success, even if the last write_value fails
 exit 0
